@@ -1,11 +1,13 @@
 package com.truckpulse.telemetry.controller;
 
 import com.truckpulse.telemetry.dto.TelemetryRequest;
+import com.truckpulse.telemetry.model.DrivingEvent;
 import com.truckpulse.telemetry.service.TelemetryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -36,6 +38,13 @@ public class TelemetryController {
 //        }
 //
 //        return ResponseEntity.notFound().build();
+    }
+    @GetMapping("/events/{truckId}")
+    public List<DrivingEvent> getDrivingEvents(
+            @PathVariable String truckId
+    ) {
+        return telemetryService.getDrivingEvents(truckId);
+
     }
 
 }
