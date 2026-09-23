@@ -5,6 +5,9 @@ public record DrivingEvent(
         DrivingEventType eventType,
         double previousSpeed,
         double currentSpeed,
-        double speedDifference
+        double speedDifference,
+        long durationMs,
+        double deceleration
+
 ) {
 }

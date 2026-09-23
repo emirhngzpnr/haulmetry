@@ -2,6 +2,7 @@ package com.truckpulse.telemetry.controller;
 
 import com.truckpulse.telemetry.dto.TelemetryRequest;
 import com.truckpulse.telemetry.model.DrivingEvent;
+import com.truckpulse.telemetry.model.TelemetrySnapshot;
 import com.truckpulse.telemetry.service.TelemetryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -24,15 +25,15 @@ public class TelemetryController {
         return telemetryService.processTelemetryRequest(telemetryRequest);
     }
     @GetMapping("/telemetry/{truckId}")
-    public ResponseEntity<TelemetryRequest> getTelemetryRequest(
+    public ResponseEntity<TelemetrySnapshot> getTelemetryRequest(
             @PathVariable String truckId) {
 
-        Optional<TelemetryRequest> telemetry =
+        Optional<TelemetrySnapshot> telemetry =
                 telemetryService.getLatestTelemetry(truckId);
 
         return telemetry
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseGet(()->ResponseEntity.notFound().build());
 //        if (telemetry.isPresent()) {
 //            return ResponseEntity.ok(telemetry.get());
 //        }
