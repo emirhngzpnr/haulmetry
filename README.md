@@ -473,9 +473,9 @@ The project is being developed in stages.
 
 ### Phase 2 — Event History and Persistence
 
-- [ ] Store multiple events per truck
-- [ ] Add timestamps
-- [ ] Introduce PostgreSQL
+- [x] Store multiple events per truck
+- [x] Add timestamps
+- [x] Introduce PostgreSQL
 - [ ] Model Truck entity
 - [ ] Model Trip entity
 - [ ] Model TelemetryRecord entity
