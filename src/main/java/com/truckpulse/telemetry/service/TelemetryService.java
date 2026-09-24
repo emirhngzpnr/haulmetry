@@ -4,6 +4,7 @@ import com.truckpulse.telemetry.dto.TelemetryRequest;
 import com.truckpulse.telemetry.model.DrivingEvent;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
+import com.truckpulse.telemetry.repository.TruckRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -21,9 +22,18 @@ public class TelemetryService {
 
     // truck'a ait event geçmişini saklamak istiyoruz, hashmap ile truckId üzerinden ArrayList'e erişebilmek mantıklı
     Map<String, List<DrivingEvent>> drivingEvents = new HashMap<>();
-
+ private final TruckRepository truckRepository;
+ public TelemetryService(TruckRepository truckRepository) {
+     this.truckRepository = truckRepository;
+ }
     public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
     ) {
+
+        boolean exist=
+                truckRepository.findByTruckId(
+                        telemetryRequest.truckId()
+                ).isPresent();
+
          // eğer Validasyon kullanmayıp bu şekilde kontrol sağlarsak 500 ınternal server hatası alırız.
         // Validasyon kullandığımız zaman ise 400 bad request alırız ki bu daha sağlıklı olan yoldur.
 //        if(telemetryRequest.speed()<0 || telemetryRequest.fuel()<0
