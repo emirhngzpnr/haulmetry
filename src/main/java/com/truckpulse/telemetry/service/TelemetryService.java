@@ -1,6 +1,7 @@
 package com.truckpulse.telemetry.service;
 
 import com.truckpulse.telemetry.dto.TelemetryRequest;
+import com.truckpulse.telemetry.exception.TruckNotFoundException;
 import com.truckpulse.telemetry.model.DrivingEvent;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
@@ -28,12 +29,10 @@ public class TelemetryService {
  }
     public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
     ) {
+if(!truckRepository.existsByTruckId(telemetryRequest.truckId())) {
+    throw new TruckNotFoundException(telemetryRequest.truckId());
 
-        boolean exist=
-                truckRepository.findByTruckId(
-                        telemetryRequest.truckId()
-                ).isPresent();
-
+}
          // eğer Validasyon kullanmayıp bu şekilde kontrol sağlarsak 500 ınternal server hatası alırız.
         // Validasyon kullandığımız zaman ise 400 bad request alırız ki bu daha sağlıklı olan yoldur.
 //        if(telemetryRequest.speed()<0 || telemetryRequest.fuel()<0
@@ -88,7 +87,7 @@ if(previous != null) {
 //    System.out.println("Speed difference: " + speedDifference);
 //    System.out.println("Time difference: " + milliseconds + " ms");
 
-        if (deceleration > HARSH_BRAKING_THRESHOLD) {
+        if (deceleration >= HARSH_BRAKING_THRESHOLD) {
 
             // event oluşturma
             DrivingEvent drivingEvent = new DrivingEvent(
