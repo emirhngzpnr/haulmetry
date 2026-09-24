@@ -17,7 +17,7 @@ public class TruckService {
     }
 
     public Truck registerTruck(TruckRequest truckRequest) {
-return   truckRepository.findByTruckId(truckRequest.truckId())
+return  truckRepository.findByTruckId(truckRequest.truckId())
                 .orElseGet(() -> {
                     Truck truck = new Truck(truckRequest.truckId(), truckRequest.model());
                     return truckRepository.save(truck);

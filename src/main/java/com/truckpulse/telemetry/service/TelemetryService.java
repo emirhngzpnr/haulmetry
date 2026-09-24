@@ -18,11 +18,11 @@ public class TelemetryService {
     private static final double HARSH_BRAKING_THRESHOLD = 4.0;
     // truck - speed eşleştirmesi için Map tanımlarız. Key - Value değeri olarak tutmamız O(1) zaman karmaşıklığını elde etmemizi sağlar
 //    Map<String, TelemetryRequest> latestTelemetry = new HashMap<>();
-      Map<String, TelemetrySnapshot> latestTelemetry = new HashMap<>();
+    private final  Map<String, TelemetrySnapshot> latestTelemetry = new HashMap<>();
 
 
     // truck'a ait event geçmişini saklamak istiyoruz, hashmap ile truckId üzerinden ArrayList'e erişebilmek mantıklı
-    Map<String, List<DrivingEvent>> drivingEvents = new HashMap<>();
+ private final   Map<String, List<DrivingEvent>> drivingEvents = new HashMap<>();
  private final TruckRepository truckRepository;
  public TelemetryService(TruckRepository truckRepository) {
      this.truckRepository = truckRepository;
@@ -91,7 +91,7 @@ if(previous != null) {
 
             // event oluşturma
             DrivingEvent drivingEvent = new DrivingEvent(
-                    telemetryRequest.truckId(),
+                   current.truckId(),
                     DrivingEventType.HARSH_BRAKING,
                     previous.speed(),
                     current.speed(),

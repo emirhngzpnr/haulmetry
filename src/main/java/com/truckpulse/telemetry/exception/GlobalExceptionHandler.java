@@ -1,16 +1,25 @@
 package com.truckpulse.telemetry.exception;
 
-import org.apache.coyote.Response;
+import com.truckpulse.telemetry.dto.ApiError;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler   {
-    @ExceptionHandler
-    public ResponseEntity<String> handleTruckNotFoundException(TruckNotFoundException exception) {
+    @ExceptionHandler(TruckNotFoundException.class)
+    public ResponseEntity<ApiError> handleTruckNotFound(
+            TruckNotFoundException exception) {
+
+        ApiError error = new ApiError(
+                HttpStatus.NOT_FOUND.value(),
+                exception.getMessage()
+        );
+
         return ResponseEntity
-                .notFound()
-                .build();
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
     }
+
 }
