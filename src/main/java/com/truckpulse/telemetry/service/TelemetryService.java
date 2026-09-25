@@ -1,5 +1,6 @@
 package com.truckpulse.telemetry.service;
 
+import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
 import com.truckpulse.telemetry.dto.TelemetryRequest;
 import com.truckpulse.telemetry.entity.TelemetryRecord;
 import com.truckpulse.telemetry.entity.Truck;
@@ -103,12 +104,7 @@ if(previous != null) {
 
         double deceleration =
                 speedDifferenceMs / seconds;
-//
-//        System.out.println("Deceleration: "
-//                + deceleration + " m/s²");
 
-//    System.out.println("Speed difference: " + speedDifference);
-//    System.out.println("Time difference: " + milliseconds + " ms");
 
         if (deceleration >= HARSH_BRAKING_THRESHOLD) {
 
@@ -125,15 +121,7 @@ if(previous != null) {
 
             );
             System.out.println(drivingEvent);
-            // truckId için liste yoksa liste oluşturma
-//        if(!drivingEvents.containsKey(telemetryRequest.truckId())) {
-//            drivingEvents.put(telemetryRequest.truckId(),
-//                            new ArrayList<>());
-//        }
-//
-//        // listeyi get ile al ve add ile eventi ekle
-//        drivingEvents.get(telemetryRequest.truckId())
-//                        .add(drivingEvent);
+
 
             // daha modern yöntem clean code -> computeIfAbsent() kullanmak
             drivingEvents
@@ -156,5 +144,20 @@ if(previous != null) {
         public List<DrivingEvent> getDrivingEvents(String truckId) {
            return  drivingEvents.getOrDefault(truckId,List.of());
         }
+    public List<TelemetryRecordResponse> getTelemetryHistory(String truckId) {
 
+        return telemetryRecordRepository
+                .findByTruck_TruckIdOrderByTimestampAsc(truckId)
+                .stream()
+                .map(record -> new TelemetryRecordResponse(
+                        record.getId(),
+                        record.getTruck().getTruckId(),
+                        record.getSpeed(),
+                        record.getRpm(),
+                        record.getFuel(),
+                        record.getGear(),
+                        record.getTimestamp()
+                ))
+                .toList();
+    }
 }
