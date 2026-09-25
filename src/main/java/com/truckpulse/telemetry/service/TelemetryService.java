@@ -1,10 +1,13 @@
 package com.truckpulse.telemetry.service;
 
 import com.truckpulse.telemetry.dto.TelemetryRequest;
+import com.truckpulse.telemetry.entity.TelemetryRecord;
+import com.truckpulse.telemetry.entity.Truck;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
 import com.truckpulse.telemetry.model.DrivingEvent;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
+import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
 import org.springframework.stereotype.Service;
 
@@ -24,15 +27,26 @@ public class TelemetryService {
     // truck'a ait event geçmişini saklamak istiyoruz, hashmap ile truckId üzerinden ArrayList'e erişebilmek mantıklı
  private final   Map<String, List<DrivingEvent>> drivingEvents = new HashMap<>();
  private final TruckRepository truckRepository;
- public TelemetryService(TruckRepository truckRepository) {
+ private final TelemetryRecordRepository telemetryRecordRepository;
+
+ public TelemetryService(TruckRepository truckRepository, TelemetryRecordRepository telemetryRecordRepository) {
      this.truckRepository = truckRepository;
+     this.telemetryRecordRepository = telemetryRecordRepository;
  }
+
     public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
     ) {
-if(!truckRepository.existsByTruckId(telemetryRequest.truckId())) {
-    throw new TruckNotFoundException(telemetryRequest.truckId());
-
-}
+//if(!truckRepository.existsByTruckId(telemetryRequest.truckId())) {
+//    throw new TruckNotFoundException(telemetryRequest.truckId());
+//
+//}
+        Truck truck = truckRepository
+                .findByTruckId(telemetryRequest.truckId())
+                .orElseThrow(() ->
+                        new TruckNotFoundException(
+                                telemetryRequest.truckId()
+                        )
+                );
          // eğer Validasyon kullanmayıp bu şekilde kontrol sağlarsak 500 ınternal server hatası alırız.
         // Validasyon kullandığımız zaman ise 400 bad request alırız ki bu daha sağlıklı olan yoldur.
 //        if(telemetryRequest.speed()<0 || telemetryRequest.fuel()<0
@@ -47,6 +61,15 @@ if(!truckRepository.existsByTruckId(telemetryRequest.truckId())) {
                 telemetryRequest.gear(),
                 Instant.now()
         );
+        TelemetryRecord telemetryRecord = new TelemetryRecord(
+                truck,
+                current.speed(),
+                current.rpm(),
+                current.fuel(),
+                current.gear(),
+                current.timestamp()
+        );
+        telemetryRecordRepository.save(telemetryRecord);
            TelemetrySnapshot previous = latestTelemetry.put(
                    current.truckId(),
                    current

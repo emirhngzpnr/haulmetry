@@ -476,12 +476,12 @@ The project is being developed in stages.
 - [x] Store multiple events per truck
 - [x] Add timestamps
 - [x] Introduce PostgreSQL
-- [ ] Model Truck entity
+- [x] Model Truck entity
 - [ ] Model Trip entity
-- [ ] Model TelemetryRecord entity
+- [x] Model TelemetryRecord entity
 - [ ] Model persistent DrivingEvent entity
 - [ ] Add Flyway migrations
-- [ ] Add repository layer
+- [x] Add repository layer
 
 ### Phase 3 — Real-Time Telemetry
 
