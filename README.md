@@ -477,7 +477,7 @@ The project is being developed in stages.
 - [x] Add timestamps
 - [x] Introduce PostgreSQL
 - [x] Model Truck entity
-- [ ] Model Trip entity
+- [x] Model Trip entity
 - [x] Model TelemetryRecord entity
 - [ ] Model persistent DrivingEvent entity
 - [ ] Add Flyway migrations

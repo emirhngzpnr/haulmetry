@@ -21,5 +21,33 @@ public class GlobalExceptionHandler   {
                 .status(HttpStatus.NOT_FOUND)
                 .body(error);
     }
+    @ExceptionHandler(TripNotFoundException.class)
+    public ResponseEntity<ApiError> handleTripNotFound(
+            TripNotFoundException exception) {
 
+        ApiError error = new ApiError(
+                HttpStatus.NOT_FOUND.value(),
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+    @ExceptionHandler({
+            ActiveTripAlreadyExistsException.class,
+            TripAlreadyCompletedException.class
+    })
+    public ResponseEntity<ApiError> handleTripConflict(
+            RuntimeException exception) {
+
+        ApiError error = new ApiError(
+                HttpStatus.CONFLICT.value(),
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
 }
