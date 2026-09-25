@@ -3,12 +3,15 @@ package com.truckpulse.telemetry.service;
 import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
 import com.truckpulse.telemetry.dto.TelemetryRequest;
 import com.truckpulse.telemetry.entity.TelemetryRecord;
+import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.entity.Truck;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
 import com.truckpulse.telemetry.model.DrivingEvent;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
+import com.truckpulse.telemetry.model.TripStatus;
 import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
+import com.truckpulse.telemetry.repository.TripRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
 import org.springframework.stereotype.Service;
 
@@ -28,19 +31,20 @@ public class TelemetryService {
     // truck'a ait event geçmişini saklamak istiyoruz, hashmap ile truckId üzerinden ArrayList'e erişebilmek mantıklı
  private final   Map<String, List<DrivingEvent>> drivingEvents = new HashMap<>();
  private final TruckRepository truckRepository;
+ private final TripRepository tripRepository;
  private final TelemetryRecordRepository telemetryRecordRepository;
 
- public TelemetryService(TruckRepository truckRepository, TelemetryRecordRepository telemetryRecordRepository) {
+ public TelemetryService(TruckRepository truckRepository,
+                         TripRepository tripRepository ,
+                         TelemetryRecordRepository telemetryRecordRepository
+ ) {
      this.truckRepository = truckRepository;
+     this.tripRepository = tripRepository;
      this.telemetryRecordRepository = telemetryRecordRepository;
  }
 
     public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
     ) {
-//if(!truckRepository.existsByTruckId(telemetryRequest.truckId())) {
-//    throw new TruckNotFoundException(telemetryRequest.truckId());
-//
-//}
         Truck truck = truckRepository
                 .findByTruckId(telemetryRequest.truckId())
                 .orElseThrow(() ->
@@ -62,14 +66,21 @@ public class TelemetryService {
                 telemetryRequest.gear(),
                 Instant.now()
         );
-        TelemetryRecord telemetryRecord = new TelemetryRecord(
-                truck,
-                current.speed(),
-                current.rpm(),
-                current.fuel(),
-                current.gear(),
-                current.timestamp()
-        );
+        Trip activeTrip = tripRepository
+                .findByTruck_TruckIdAndStatus(
+                        telemetryRequest.truckId(),
+                        TripStatus.ACTIVE
+                )
+                .orElse(null);
+                        TelemetryRecord telemetryRecord = new TelemetryRecord(
+                                truck,
+                                activeTrip,
+                                current.speed(),
+                                current.rpm(),
+                                current.fuel(),
+                                current.gear(),
+                                current.timestamp()
+                        );
         telemetryRecordRepository.save(telemetryRecord);
            TelemetrySnapshot previous = latestTelemetry.put(
                    current.truckId(),
@@ -152,6 +163,8 @@ if(previous != null) {
                 .map(record -> new TelemetryRecordResponse(
                         record.getId(),
                         record.getTruck().getTruckId(),
+                        record.getTrip()!=null
+                            ? record.getTrip().getId():null,
                         record.getSpeed(),
                         record.getRpm(),
                         record.getFuel(),

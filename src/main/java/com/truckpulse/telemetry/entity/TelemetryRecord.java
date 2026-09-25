@@ -14,6 +14,9 @@ public class TelemetryRecord {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "truck_id",nullable = false)
     private Truck truck;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id")
+    private Trip trip;
     private double speed;
     private int rpm;
     private double fuel;
@@ -21,8 +24,9 @@ public class TelemetryRecord {
     private Instant timestamp;
 
     protected TelemetryRecord() {}
-    public TelemetryRecord(Truck truck, double speed, int rpm, double fuel, int gear, Instant timestamp) {
+    public TelemetryRecord(Truck truck,Trip trip ,double speed, int rpm, double fuel, int gear, Instant timestamp) {
     this.truck = truck;
+    this.trip = trip;
     this.speed = speed;
     this.rpm = rpm;
     this.fuel = fuel;
@@ -34,6 +38,7 @@ public class TelemetryRecord {
     public Truck getTruck() {
         return truck;
     }
+    public Trip getTrip() {return trip;}
 
     public Long getId() {
         return id;
