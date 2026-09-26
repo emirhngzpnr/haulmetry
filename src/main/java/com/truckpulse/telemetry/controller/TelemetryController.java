@@ -1,5 +1,6 @@
 package com.truckpulse.telemetry.controller;
 
+import com.truckpulse.telemetry.dto.DrivingEventResponse;
 import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
 import com.truckpulse.telemetry.dto.TelemetryRequest;
 import com.truckpulse.telemetry.entity.TelemetryRecord;
@@ -43,7 +44,7 @@ public class TelemetryController {
 //        return ResponseEntity.notFound().build();
     }
     @GetMapping("/events/{truckId}")
-    public List<DrivingEvent> getDrivingEvents(
+    public List<DrivingEventResponse> getDrivingEvents(
             @PathVariable String truckId
     ) {
         return telemetryService.getDrivingEvents(truckId);

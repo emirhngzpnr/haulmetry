@@ -1,5 +1,6 @@
 package com.truckpulse.telemetry.service;
 
+import com.truckpulse.telemetry.dto.DrivingEventResponse;
 import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
 import com.truckpulse.telemetry.dto.TelemetryRequest;
 import com.truckpulse.telemetry.entity.DrivingEventEntity;
@@ -7,7 +8,6 @@ import com.truckpulse.telemetry.entity.TelemetryRecord;
 import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.entity.Truck;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
-import com.truckpulse.telemetry.model.DrivingEvent;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
 import com.truckpulse.telemetry.model.TripStatus;
@@ -30,8 +30,6 @@ public class TelemetryService {
     private final  Map<String, TelemetrySnapshot> latestTelemetry = new HashMap<>();
 
 
-    // truck'a ait event geçmişini saklamak istiyoruz, hashmap ile truckId üzerinden ArrayList'e erişebilmek mantıklı
- private final   Map<String, List<DrivingEvent>> drivingEvents = new HashMap<>();
  private final TruckRepository truckRepository;
  private final TripRepository tripRepository;
  private final TelemetryRecordRepository telemetryRecordRepository;
@@ -124,25 +122,6 @@ if(previous != null) {
 
         if (deceleration >= HARSH_BRAKING_THRESHOLD) {
 
-            // event oluşturma
-            DrivingEvent drivingEvent = new DrivingEvent(
-                   current.truckId(),
-                    DrivingEventType.HARSH_BRAKING,
-                    previous.speed(),
-                    current.speed(),
-                    speedDifference,
-                    milliseconds,
-                    deceleration
-
-
-            );
-            // daha modern yöntem clean code -> computeIfAbsent() kullanmak
-            drivingEvents
-                    .computeIfAbsent(
-                            current.truckId(),
-                            key -> new ArrayList<>()
-                    )
-                    .add(drivingEvent);
 
             DrivingEventEntity drivingEventEntity =
                     new DrivingEventEntity(
@@ -168,8 +147,24 @@ drivingEventRepository.save(drivingEventEntity);
         return Optional.ofNullable(latestTelemetry.get(truckId)); // aranan keye ait value olmayabilir bu durumda null değer döndürebilir bunun önüne geçmek için Optional kullanırız.
 
         }
-        public List<DrivingEvent> getDrivingEvents(String truckId) {
-           return  drivingEvents.getOrDefault(truckId,List.of());
+        public List<DrivingEventResponse> getDrivingEvents(String truckId) {
+           return  drivingEventRepository.findByTruck_TruckIdOrderByOccurredAtAsc(truckId)
+                   .stream()
+                   .map(record -> new DrivingEventResponse(
+                           record.getId(),
+                           record.getTruck().getTruckId(),
+                           record.getTrip()!=null
+                           ? record.getTrip().getId():
+                                   null,
+                           record.getEventType(),
+                           record.getPreviousSpeed(),
+                           record.getCurrentSpeed(),
+                           record.getSpeedDifference(),
+                           record.getDurationMs(),
+                           record.getDeceleration(),
+                           record.getOccurredAt()
+
+                   )).toList();
         }
     public List<TelemetryRecordResponse> getTelemetryHistory(String truckId) {
 

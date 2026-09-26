@@ -4,6 +4,8 @@ import com.truckpulse.telemetry.entity.DrivingEventEntity;
 import com.truckpulse.telemetry.model.DrivingEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface DrivingEventRepository extends JpaRepository<DrivingEventEntity, Long> {
+import java.util.List;
 
+public interface DrivingEventRepository extends JpaRepository<DrivingEventEntity, Long> {
+    List<DrivingEventEntity> findByTruck_TruckIdOrderByOccurredAtAsc(String truckId);
 }
