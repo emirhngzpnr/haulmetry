@@ -2,6 +2,7 @@ package com.truckpulse.telemetry.service;
 
 import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
 import com.truckpulse.telemetry.dto.TelemetryRequest;
+import com.truckpulse.telemetry.entity.DrivingEventEntity;
 import com.truckpulse.telemetry.entity.TelemetryRecord;
 import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.entity.Truck;
@@ -10,6 +11,7 @@ import com.truckpulse.telemetry.model.DrivingEvent;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
 import com.truckpulse.telemetry.model.TripStatus;
+import com.truckpulse.telemetry.repository.DrivingEventRepository;
 import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
 import com.truckpulse.telemetry.repository.TripRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
@@ -33,14 +35,17 @@ public class TelemetryService {
  private final TruckRepository truckRepository;
  private final TripRepository tripRepository;
  private final TelemetryRecordRepository telemetryRecordRepository;
+ private final DrivingEventRepository drivingEventRepository;
 
  public TelemetryService(TruckRepository truckRepository,
                          TripRepository tripRepository ,
-                         TelemetryRecordRepository telemetryRecordRepository
+                         TelemetryRecordRepository telemetryRecordRepository,
+                         DrivingEventRepository drivingEventRepository
  ) {
      this.truckRepository = truckRepository;
      this.tripRepository = tripRepository;
      this.telemetryRecordRepository = telemetryRecordRepository;
+     this.drivingEventRepository = drivingEventRepository;
  }
 
     public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
@@ -131,9 +136,6 @@ if(previous != null) {
 
 
             );
-            System.out.println(drivingEvent);
-
-
             // daha modern yöntem clean code -> computeIfAbsent() kullanmak
             drivingEvents
                     .computeIfAbsent(
@@ -142,6 +144,20 @@ if(previous != null) {
                     )
                     .add(drivingEvent);
 
+            DrivingEventEntity drivingEventEntity =
+                    new DrivingEventEntity(
+                            truck,
+                            activeTrip,
+                            DrivingEventType.HARSH_BRAKING,
+                            previous.speed(),
+                            current.speed(),
+                            speedDifference,
+                            milliseconds,
+                            deceleration,
+                            current.timestamp()
+                    );
+
+drivingEventRepository.save(drivingEventEntity);
         }
     }
 }
