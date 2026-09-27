@@ -3,6 +3,7 @@ package com.truckpulse.telemetry.controller;
 import com.truckpulse.telemetry.dto.DrivingEventResponse;
 import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
 import com.truckpulse.telemetry.dto.TripResponse;
+import com.truckpulse.telemetry.dto.TripSummaryResponse;
 import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.service.TelemetryService;
 import com.truckpulse.telemetry.service.TripService;
@@ -38,4 +39,10 @@ public class TripController {
     public List<DrivingEventResponse> getDrivingEventsByTripId(@PathVariable Long tripId) {
         return telemetryService.getEventsByTripId(tripId);
     }
+
+    @GetMapping("/{tripId}/summary")
+    public TripSummaryResponse getTripSummary(@PathVariable Long tripId) {
+        return tripService.getTripSummary(tripId);
+    }
+
 }
