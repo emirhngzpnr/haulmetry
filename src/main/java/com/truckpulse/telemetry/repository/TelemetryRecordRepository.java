@@ -9,4 +9,5 @@ import java.util.List;
 public interface TelemetryRecordRepository extends JpaRepository<TelemetryRecord, Long> {
 
     List<TelemetryRecord> findByTruck_TruckIdOrderByTimestampAsc(String truckId);
+    List<TelemetryRecord> findByTrip_IdOrderByTimestampAsc(Long tripId);
 }

@@ -7,6 +7,7 @@ import com.truckpulse.telemetry.entity.DrivingEventEntity;
 import com.truckpulse.telemetry.entity.TelemetryRecord;
 import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.entity.Truck;
+import com.truckpulse.telemetry.exception.TripNotFoundException;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
@@ -183,5 +184,49 @@ drivingEventRepository.save(drivingEventEntity);
                         record.getTimestamp()
                 ))
                 .toList();
+    }
+    public List<TelemetryRecordResponse> getTelemetryByTripId(Long tripId) {
+     tripRepository
+             .findById(tripId)
+             .orElseThrow(()->new TripNotFoundException(tripId));
+
+
+        return telemetryRecordRepository
+                .findByTrip_IdOrderByTimestampAsc(tripId)
+                .stream()
+                .map(record -> new TelemetryRecordResponse(
+                        record.getId(),
+                        record.getTruck().getTruckId(),
+                        record.getTrip().getId(),
+                        record.getSpeed(),
+                        record.getRpm(),
+                        record.getFuel(),
+                        record.getGear(),
+                        record.getTimestamp()
+                ))
+                .toList();
+
+    }
+
+    public List<DrivingEventResponse> getEventsByTripId(Long tripId) {
+     tripRepository
+             .findById(tripId)
+             .orElseThrow(()->new TripNotFoundException(tripId));
+
+     return drivingEventRepository
+             .findByTrip_IdOrderByOccurredAtAsc(tripId)
+             .stream()
+             .map(record -> new DrivingEventResponse(
+                     record.getId(),
+                     record.getTruck().getTruckId(),
+                     record.getTrip().getId(),
+                     record.getEventType(),
+                     record.getPreviousSpeed(),
+                     record.getCurrentSpeed(),
+                     record.getSpeedDifference(),
+                     record.getDurationMs(),
+                     record.getDeceleration(),
+                     record.getOccurredAt()
+             )).toList();
     }
 }

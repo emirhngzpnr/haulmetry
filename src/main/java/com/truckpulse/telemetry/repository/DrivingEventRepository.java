@@ -8,4 +8,7 @@ import java.util.List;
 
 public interface DrivingEventRepository extends JpaRepository<DrivingEventEntity, Long> {
     List<DrivingEventEntity> findByTruck_TruckIdOrderByOccurredAtAsc(String truckId);
+
+    List<DrivingEventEntity> findByTrip_IdOrderByOccurredAtAsc(Long tripId);
+
 }
