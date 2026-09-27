@@ -13,6 +13,7 @@ import com.truckpulse.telemetry.repository.TruckRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class TripService {
@@ -68,5 +69,24 @@ return new TripResponse(
                         savedTrip.getEndedAt(),
                         savedTrip.getStatus()
                 );
+    }
+    public List<TripResponse> getTripsByTruckId(String truckId) {
+        truckRepository
+                .findByTruckId(truckId)
+                .orElseThrow(()->new TruckNotFoundException(truckId));
+
+      return  tripRepository
+                .findByTruck_TruckIdOrderByStartedAtDesc(truckId)
+                .stream()
+              .map(
+                      record -> new TripResponse(
+                              record.getId(),
+                              record.getTruck().getTruckId(),
+                              record.getStartedAt(),
+                              record.getEndedAt(),
+                              record.getStatus()
+                      )
+              ).toList();
+
     }
 }
