@@ -479,8 +479,8 @@ The project is being developed in stages.
 - [x] Model Truck entity
 - [x] Model Trip entity
 - [x] Model TelemetryRecord entity
-- [ ] Model persistent DrivingEvent entity
-- [ ] Add Flyway migrations
+- [x] Model persistent DrivingEvent entity
+- [x] Add Flyway migrations
 - [x] Add repository layer
 
 ### Phase 3 — Real-Time Telemetry
