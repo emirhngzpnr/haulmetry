@@ -483,21 +483,72 @@ The project is being developed in stages.
 - [x] Add Flyway migrations
 - [x] Add repository layer
 
-### Phase 3 — Real-Time Telemetry
+### Phase 3 — Concurrency, Data Integrity and Reliability
+
+#### Trip Concurrency
+
+- [ ] Reproduce the `startTrip` race condition with concurrent requests
+- [ ] Prevent multiple `ACTIVE` trips for the same truck
+- [ ] Add a PostgreSQL constraint for active trips
+- [ ] Add the constraint through a Flyway migration
+- [ ] Handle database constraint violations gracefully
+- [ ] Return `409 Conflict` when an active trip already exists
+- [ ] Verify the solution with concurrent request tests
+
+#### Transaction Management
+
+- [ ] Define transaction boundaries for telemetry processing
+- [ ] Persist telemetry records and generated driving events atomically
+- [ ] Verify rollback behavior
+- [ ] Review trip start and completion transaction boundaries
+
+#### Thread-Safe Telemetry Processing
+
+- [ ] Replace unsafe shared telemetry state
+- [ ] Make `latestTelemetry` access thread-safe
+- [ ] Preserve telemetry ordering for the same truck
+- [ ] Prevent race conditions in previous/current telemetry comparison
+- [ ] Allow different trucks to be processed independently
+
+#### Deterministic Telemetry Testing
+
+- [ ] Test harsh-braking detection with controlled speed values
+- [ ] Test known telemetry time intervals
+- [ ] Verify deceleration calculations against expected results
+- [ ] Make time-dependent logic testable
+- [ ] Consider injecting `Clock` instead of directly using `Instant.now()`
+
+#### Reliability Testing
+
+- [ ] Test telemetry without an active trip
+- [ ] Test telemetry while a trip is being completed
+- [ ] Test duplicate concurrent trip-start requests
+- [ ] Test nonexistent truck and trip scenarios
+- [ ] Verify expected `200`, `404`, and `409` responses
+- [ ] Verify database consistency after failed requests
+
+### Phase 4 — ETS2 Integration
+
+- [x] Build initial native C++ telemetry bridge
+- [x] Forward test telemetry from C++ to the backend
+- [x] Handle backend HTTP responses in the bridge
+- [ ] Integrate SCS Telemetry SDK
+- [ ] Read live vehicle telemetry from ETS2
+- [ ] Map ETS2 telemetry to the bridge telemetry model
+- [ ] Forward live ETS2 telemetry to the backend
+- [ ] Handle game pause and telemetry interruptions
+- [ ] Handle bridge reconnection scenarios
+- [ ] Replace manual telemetry input with live game telemetry
+
+### Phase 5 — Real-Time Telemetry
 
 - [ ] Add live vehicle state
 - [ ] Add WebSocket communication
 - [ ] Build a simple live telemetry dashboard
-- [ ] Support multiple active trucks
+- [ ] Support multiple simultaneously active trucks
+- [ ] Stream live telemetry updates to connected clients
 
-### Phase 4 — ETS2 Integration
-
-- [ ] Integrate SCS Telemetry SDK
-- [ ] Build native telemetry bridge
-- [ ] Forward ETS2 telemetry to the backend
-- [ ] Replace manual telemetry input with live game telemetry
-
-### Phase 5 — Event-Driven Architecture
+### Phase 6 — Event-Driven Architecture
 
 - [ ] Introduce Apache Kafka
 - [ ] Publish telemetry events
@@ -507,7 +558,7 @@ The project is being developed in stages.
 - [ ] Handle duplicate messages
 - [ ] Introduce idempotent processing
 
-### Phase 6 — Performance and Infrastructure
+### Phase 7 — Performance and Infrastructure
 
 - [ ] Introduce Redis
 - [ ] Add Docker
@@ -516,14 +567,14 @@ The project is being developed in stages.
 - [ ] Add application metrics
 - [ ] Add monitoring and observability
 
-### Phase 7 — Analytics
+### Phase 8 — Analytics
 
 - [ ] Harsh braking analysis
 - [ ] Overspeed detection
 - [ ] Sudden acceleration detection
 - [ ] Fuel-efficiency analysis
 - [ ] Driver scoring
-- [ ] Trip summaries
+- [x] Trip summaries
 - [ ] Fleet-level analytics
 
 ---
