@@ -44,6 +44,7 @@ public class TripService {
         if (hasActiveTrip) {
             throw new ActiveTripAlreadyExistsException(truckId);
         }
+
         Trip trip = new Trip(
                 truck,
                 Instant.now(),

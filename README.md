@@ -487,10 +487,10 @@ The project is being developed in stages.
 
 #### Trip Concurrency
 
-- [ ] Reproduce the `startTrip` race condition with concurrent requests
-- [ ] Prevent multiple `ACTIVE` trips for the same truck
-- [ ] Add a PostgreSQL constraint for active trips
-- [ ] Add the constraint through a Flyway migration
+- [x] Reproduce the `startTrip` race condition with concurrent requests
+- [x] Prevent multiple `ACTIVE` trips for the same truck
+- [x] Add a PostgreSQL constraint for active trips
+- [x] Add the constraint through a Flyway migration
 - [ ] Handle database constraint violations gracefully
 - [ ] Return `409 Conflict` when an active trip already exists
 - [ ] Verify the solution with concurrent request tests
