@@ -15,6 +15,7 @@ import com.truckpulse.telemetry.repository.DrivingEventRepository;
 import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
 import com.truckpulse.telemetry.repository.TripRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -51,7 +52,13 @@ public class TripService {
                 TripStatus.ACTIVE
 
         );
-Trip savedTrip = tripRepository.save(trip);
+
+        Trip savedTrip;
+        try {
+            savedTrip = tripRepository.saveAndFlush(trip);
+        } catch (DataIntegrityViolationException e) {
+            throw new ActiveTripAlreadyExistsException(truckId);
+        }
 return new TripResponse(
         savedTrip.getId(),
         savedTrip.getTruck().getTruckId(),

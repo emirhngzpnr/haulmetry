@@ -491,9 +491,9 @@ The project is being developed in stages.
 - [x] Prevent multiple `ACTIVE` trips for the same truck
 - [x] Add a PostgreSQL constraint for active trips
 - [x] Add the constraint through a Flyway migration
-- [ ] Handle database constraint violations gracefully
-- [ ] Return `409 Conflict` when an active trip already exists
-- [ ] Verify the solution with concurrent request tests
+- [x] Handle database constraint violations gracefully
+- [x] Return `409 Conflict` when an active trip already exists
+- [x] Verify the solution with concurrent request tests
 
 #### Transaction Management
 
