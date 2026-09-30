@@ -16,6 +16,7 @@ import com.truckpulse.telemetry.repository.DrivingEventRepository;
 import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
 import com.truckpulse.telemetry.repository.TripRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -46,7 +47,7 @@ public class TelemetryService {
      this.telemetryRecordRepository = telemetryRecordRepository;
      this.drivingEventRepository = drivingEventRepository;
  }
-
+    @Transactional
     public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
     ) {
         Truck truck = truckRepository
@@ -86,6 +87,7 @@ public class TelemetryService {
                                 current.timestamp()
                         );
         telemetryRecordRepository.save(telemetryRecord);
+
            TelemetrySnapshot previous = latestTelemetry.put(
                    current.truckId(),
                    current

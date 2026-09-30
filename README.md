@@ -497,9 +497,9 @@ The project is being developed in stages.
 
 #### Transaction Management
 
-- [ ] Define transaction boundaries for telemetry processing
-- [ ] Persist telemetry records and generated driving events atomically
-- [ ] Verify rollback behavior
+- [x] Define transaction boundaries for telemetry processing
+- [x] Persist telemetry records and generated driving events atomically
+- [x] Verify rollback behavior
 - [ ] Review trip start and completion transaction boundaries
 
 #### Thread-Safe Telemetry Processing
