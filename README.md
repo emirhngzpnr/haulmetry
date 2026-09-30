@@ -504,11 +504,11 @@ The project is being developed in stages.
 
 #### Thread-Safe Telemetry Processing
 
-- [ ] Replace unsafe shared telemetry state
-- [ ] Make `latestTelemetry` access thread-safe
-- [ ] Preserve telemetry ordering for the same truck
+- [x] Replace unsafe shared telemetry state
+- [x] Make `latestTelemetry` access thread-safe
+- [x] Preserve telemetry ordering for the same truck
 - [ ] Prevent race conditions in previous/current telemetry comparison
-- [ ] Allow different trucks to be processed independently
+- [x] Allow different trucks to be processed independently
 
 #### Deterministic Telemetry Testing
 
