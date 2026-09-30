@@ -15,6 +15,7 @@ import com.truckpulse.telemetry.repository.DrivingEventRepository;
 import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
 import com.truckpulse.telemetry.repository.TripRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +36,7 @@ public class TripService {
         this.telemetryRecordRepository = telemetryRecordRepository;
         this.drivingEventRepository = drivingEventRepository;
     }
+    @Transactional
     public TripResponse startTrip(String truckId) {
         Truck truck= truckRepository
                 .findByTruckId(truckId)
@@ -67,7 +69,7 @@ return new TripResponse(
         savedTrip.getStatus()
 );
     }
-
+    @Transactional
     public TripResponse completeTrip(Long tripId) {
         Trip trip=tripRepository
                 .findById(tripId)
@@ -79,13 +81,13 @@ return new TripResponse(
 
                 }
                 trip.complete(Instant.now());
-                Trip savedTrip= tripRepository.save(trip);
+
                 return new TripResponse(
-                        savedTrip.getId(),
-                        savedTrip.getTruck().getTruckId(),
-                        savedTrip.getStartedAt(),
-                        savedTrip.getEndedAt(),
-                        savedTrip.getStatus()
+                        trip.getId(),
+                        trip.getTruck().getTruckId(),
+                        trip.getStartedAt(),
+                        trip.getEndedAt(),
+                        trip.getStatus()
                 );
     }
     public List<TripResponse> getTripsByTruckId(String truckId) {
