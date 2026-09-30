@@ -22,14 +22,19 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class TelemetryService {
     // ani fren değeri (ivme)
     private static final double HARSH_BRAKING_THRESHOLD = 4.0;
-    // truck - speed eşleştirmesi için Map tanımlarız. Key - Value değeri olarak tutmamız O(1) zaman karmaşıklığını elde etmemizi sağlar
-//    Map<String, TelemetryRequest> latestTelemetry = new HashMap<>();
-    private final  Map<String, TelemetrySnapshot> latestTelemetry = new HashMap<>();
+    // operasyonlarını güvenli sağlanması için ConccurentHashMap (thread-safe)
+    private final Map<String, TelemetrySnapshot> latestTelemetry =
+            new ConcurrentHashMap<>();
+
+    //truck bazlı lockları tutmak için
+    private final Map<String, Object> truckLocks =
+            new ConcurrentHashMap<>();
 
 
  private final TruckRepository truckRepository;
@@ -59,10 +64,14 @@ public class TelemetryService {
                 );
          // eğer Validasyon kullanmayıp bu şekilde kontrol sağlarsak 500 ınternal server hatası alırız.
         // Validasyon kullandığımız zaman ise 400 bad request alırız ki bu daha sağlıklı olan yoldur.
-//        if(telemetryRequest.speed()<0 || telemetryRequest.fuel()<0
-//                || telemetryRequest.gear()<0 || telemetryRequest.rpm()<0 ){
-//            throw  new IllegalArgumentException("Invalid telemetry data");
-//        }
+
+        Object lock = truckLocks
+                .computeIfAbsent(
+                     telemetryRequest.truckId(),
+                     key -> new Object()
+        );
+        synchronized (lock) {
+
         TelemetrySnapshot current = new TelemetrySnapshot(
                 telemetryRequest.truckId(),
                 telemetryRequest.speed(),
@@ -88,24 +97,9 @@ public class TelemetryService {
                         );
         telemetryRecordRepository.save(telemetryRecord);
 
-           TelemetrySnapshot previous = latestTelemetry.put(
-                   current.truckId(),
-                   current
-           );
-// Hız farkı ifadesini tekrar etmemek ve kodu daha okunabilir
-// hale getirmek için sonucu bir değişkende tutuyoruz.
-        // fakat bu işlemi null kontrolünden önce gerçekleştirirsek previous = null -> previous.speed() -> NullPointerException hatası alırız
-         // bu nedenle değişkene atamadan önce null kontrolü gerçekleştirmemiz gerekir.
-    //    if(previous != null && previous.speed() - telemetryRequest.speed()>=30) {
-//
-//           DrivingEvent drivingEvent = new DrivingEvent(telemetryRequest.truckId(),
-//                   DrivingEventType.HARSH_BRAKING,
-//                   previous.speed(),
-//                   telemetryRequest.speed(),
-//                   previous.speed() - telemetryRequest.speed());
-//         System.out.println("HARSH BRAKING!!!");
-//           System.out.println(drivingEvent);
-//       }
+        TelemetrySnapshot previous =
+                latestTelemetry.get(current.truckId());
+
 
 if(previous != null) {
     double speedDifference = previous.speed() - current.speed();
@@ -142,7 +136,13 @@ if(previous != null) {
 drivingEventRepository.save(drivingEventEntity);
         }
     }
-}
+}                   latestTelemetry.put(
+                    current.truckId(),
+                    current
+            );
+
+        }
+
             return telemetryRequest;
     }
 
