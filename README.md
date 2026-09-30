@@ -512,11 +512,11 @@ The project is being developed in stages.
 
 #### Deterministic Telemetry Testing
 
-- [ ] Test harsh-braking detection with controlled speed values
-- [ ] Test known telemetry time intervals
-- [ ] Verify deceleration calculations against expected results
-- [ ] Make time-dependent logic testable
-- [ ] Consider injecting `Clock` instead of directly using `Instant.now()`
+- [x] Test harsh-braking detection with controlled speed values
+- [x] Test known telemetry time intervals
+- [x] Verify deceleration calculations against expected results
+- [x] Make time-dependent logic testable
+- [x] Consider injecting `Clock` instead of directly using `Instant.now()`
 
 #### Reliability Testing
 

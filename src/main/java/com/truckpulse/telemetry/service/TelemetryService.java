@@ -19,8 +19,10 @@ import com.truckpulse.telemetry.repository.TruckRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -41,17 +43,22 @@ public class TelemetryService {
  private final TripRepository tripRepository;
  private final TelemetryRecordRepository telemetryRecordRepository;
  private final DrivingEventRepository drivingEventRepository;
+ private final Clock clock;
 
  public TelemetryService(TruckRepository truckRepository,
                          TripRepository tripRepository ,
                          TelemetryRecordRepository telemetryRecordRepository,
-                         DrivingEventRepository drivingEventRepository
+                         DrivingEventRepository drivingEventRepository,
+                         Clock clock
  ) {
      this.truckRepository = truckRepository;
      this.tripRepository = tripRepository;
      this.telemetryRecordRepository = telemetryRecordRepository;
      this.drivingEventRepository = drivingEventRepository;
+     this.clock = clock;
  }
+
+
     @Transactional
     public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
     ) {
@@ -78,7 +85,7 @@ public class TelemetryService {
                 telemetryRequest.rpm(),
                 telemetryRequest.fuel(),
                 telemetryRequest.gear(),
-                Instant.now()
+                Instant.now(clock)
         );
         Trip activeTrip = tripRepository
                 .findByTruck_TruckIdAndStatus(
