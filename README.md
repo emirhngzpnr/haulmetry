@@ -506,9 +506,13 @@ The project is being developed in stages.
 
 - [x] Replace unsafe shared telemetry state
 - [x] Make `latestTelemetry` access thread-safe
-- [x] Preserve telemetry ordering for the same truck
-- [ ] Prevent race conditions in previous/current telemetry comparison
+- [x] Prevent race conditions in previous/current telemetry comparison
 - [x] Allow different trucks to be processed independently
+- [x] Serialize telemetry processing per truck
+- [x] Add source sequence numbers to telemetry requests
+- [x] Enforce monotonic telemetry sequence per truck
+- [x] Reject duplicate and out-of-order telemetry with `409 Conflict`
+- [ ] Detect gaps in telemetry sequences
 
 #### Deterministic Telemetry Testing
 
@@ -516,16 +520,18 @@ The project is being developed in stages.
 - [x] Test known telemetry time intervals
 - [x] Verify deceleration calculations against expected results
 - [x] Make time-dependent logic testable
-- [x] Consider injecting `Clock` instead of directly using `Instant.now()`
+- [x] Inject `Clock` instead of directly using `Instant.now()`
 
 #### Reliability Testing
 
-- [ ] Test telemetry without an active trip
+- [x] Test telemetry without an active trip
 - [ ] Test telemetry while a trip is being completed
-- [ ] Test duplicate concurrent trip-start requests
-- [ ] Test nonexistent truck and trip scenarios
-- [ ] Verify expected `200`, `404`, and `409` responses
-- [ ] Verify database consistency after failed requests
+- [x] Test duplicate concurrent trip-start requests
+- [x] Test nonexistent truck and trip scenarios
+- [x] Verify expected `200`, `404`, and `409` responses
+- [x] Verify database consistency after failed requests
+- [x] Verify duplicate telemetry rejection
+- [x] Verify out-of-order telemetry rejection
 
 ### Phase 4 — ETS2 Integration
 
