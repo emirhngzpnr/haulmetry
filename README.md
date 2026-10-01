@@ -525,7 +525,7 @@ The project is being developed in stages.
 #### Reliability Testing
 
 - [x] Test telemetry without an active trip
-- [ ] Test telemetry while a trip is being completed
+- [x] Test telemetry while a trip is being completed
 - [x] Test duplicate concurrent trip-start requests
 - [x] Test nonexistent truck and trip scenarios
 - [x] Verify expected `200`, `404`, and `409` responses
@@ -572,6 +572,7 @@ The project is being developed in stages.
 - [ ] Add load testing
 - [ ] Add application metrics
 - [ ] Add monitoring and observability
+- [ ] Persist telemetry data-quality anomalies
 
 ### Phase 8 — Analytics
 

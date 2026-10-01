@@ -1,5 +1,6 @@
 package com.truckpulse.telemetry.service;
 
+import com.truckpulse.telemetry.concurrency.TruckLockManager;
 import com.truckpulse.telemetry.dto.DrivingEventResponse;
 import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
 import com.truckpulse.telemetry.dto.TelemetryRequest;
@@ -21,6 +22,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -37,10 +39,6 @@ public class TelemetryService {
     private final Map<String, TelemetrySnapshot> latestTelemetry =
             new ConcurrentHashMap<>();
 
-    //truck bazlı lockları tutmak için
-    private final Map<String, Object> truckLocks =
-            new ConcurrentHashMap<>();
-
     private final Map<String, Long> lastSequences =
             new ConcurrentHashMap<>();
 
@@ -53,43 +51,40 @@ public class TelemetryService {
  private final TelemetryRecordRepository telemetryRecordRepository;
  private final DrivingEventRepository drivingEventRepository;
  private final Clock clock;
+ private final TruckLockManager truckLockManager;
+    private final TransactionTemplate transactionTemplate;
 
  public TelemetryService(TruckRepository truckRepository,
                          TripRepository tripRepository ,
                          TelemetryRecordRepository telemetryRecordRepository,
                          DrivingEventRepository drivingEventRepository,
-                         Clock clock
+                         Clock clock,
+                         TruckLockManager truckLockManager,
+                         TransactionTemplate transactionTemplate
  ) {
      this.truckRepository = truckRepository;
      this.tripRepository = tripRepository;
      this.telemetryRecordRepository = telemetryRecordRepository;
      this.drivingEventRepository = drivingEventRepository;
      this.clock = clock;
+     this.truckLockManager = truckLockManager;
+     this.transactionTemplate = transactionTemplate;
  }
 
-
-    @Transactional
-    public TelemetryRequest processTelemetryRequest(TelemetryRequest telemetryRequest
+    public TelemetryRequest processTelemetryRequest(
+            TelemetryRequest telemetryRequest
     ) {
-        Truck truck = truckRepository
-                .findByTruckId(telemetryRequest.truckId())
-                .orElseThrow(() ->
-                        new TruckNotFoundException(
-                                telemetryRequest.truckId()
-                        )
-                );
-         // eğer Validasyon kullanmayıp bu şekilde kontrol sağlarsak 500 ınternal server hatası alırız.
-        // Validasyon kullandığımız zaman ise 400 bad request alırız ki bu daha sağlıklı olan yoldur.
 
-        Object lock = truckLocks
-                .computeIfAbsent(
-                     telemetryRequest.truckId(),
-                     key -> new Object()
+        Object lock = truckLockManager.getLock(
+                telemetryRequest.truckId()
         );
+
         synchronized (lock) {
+
             Long lastSequence =
                     lastSequences.get(telemetryRequest.truckId());
 
+            // Duplicate veya out-of-order telemetry kontrolü
             if (lastSequence != null
                     && telemetryRequest.sequenceNumber() <= lastSequence) {
 
@@ -99,6 +94,8 @@ public class TelemetryService {
                         lastSequence
                 );
             }
+
+            // Sequence gap kontrolü
             if (lastSequence != null
                     && telemetryRequest.sequenceNumber() > lastSequence + 1) {
 
@@ -116,21 +113,49 @@ public class TelemetryService {
                         missingCount
                 );
             }
-        TelemetrySnapshot current = new TelemetrySnapshot(
-                telemetryRequest.truckId(),
-                telemetryRequest.speed(),
-                telemetryRequest.rpm(),
-                telemetryRequest.fuel(),
-                telemetryRequest.gear(),
-                Instant.now(clock)
-        );
-        Trip activeTrip = tripRepository
-                .findByTruck_TruckIdAndStatus(
-                        telemetryRequest.truckId(),
-                        TripStatus.ACTIVE
-                )
-                .orElse(null);
-                        TelemetryRecord telemetryRecord = new TelemetryRecord(
+
+            // RAM'deki önceki telemetry
+            TelemetrySnapshot previous =
+                    latestTelemetry.get(
+                            telemetryRequest.truckId()
+                    );
+
+            // Şu an gelen telemetry
+            TelemetrySnapshot current =
+                    new TelemetrySnapshot(
+                            telemetryRequest.truckId(),
+                            telemetryRequest.speed(),
+                            telemetryRequest.rpm(),
+                            telemetryRequest.fuel(),
+                            telemetryRequest.gear(),
+                            Instant.now(clock)
+                    );
+
+            /*
+             * Buradan itibaren transaction başlıyor.
+             * DB ile ilgili işlemler bu blokta.
+             */
+            transactionTemplate.executeWithoutResult(status -> {
+
+                Truck truck = truckRepository
+                        .findByTruckId(
+                                telemetryRequest.truckId()
+                        )
+                        .orElseThrow(() ->
+                                new TruckNotFoundException(
+                                        telemetryRequest.truckId()
+                                )
+                        );
+
+                Trip activeTrip = tripRepository
+                        .findByTruck_TruckIdAndStatus(
+                                telemetryRequest.truckId(),
+                                TripStatus.ACTIVE
+                        )
+                        .orElse(null);
+
+                TelemetryRecord telemetryRecord =
+                        new TelemetryRecord(
                                 truck,
                                 activeTrip,
                                 current.speed(),
@@ -139,48 +164,67 @@ public class TelemetryService {
                                 current.gear(),
                                 current.timestamp()
                         );
-        telemetryRecordRepository.save(telemetryRecord);
 
-        TelemetrySnapshot previous =
-                latestTelemetry.get(current.truckId());
+                telemetryRecordRepository.save(
+                        telemetryRecord
+                );
 
+                // Önceki telemetry varsa ani fren kontrolü yap
+                if (previous != null) {
 
-if(previous != null) {
-    double speedDifference = previous.speed() - current.speed();
-    long milliseconds = Duration
-            .between(previous.timestamp(), current.timestamp())
-            .toMillis();
-    double seconds = milliseconds / 1000.0;
+                    double speedDifference =
+                            previous.speed()
+                                    - current.speed();
 
-    if (seconds > 0 && speedDifference > 0) {
+                    long milliseconds = Duration
+                            .between(
+                                    previous.timestamp(),
+                                    current.timestamp()
+                            )
+                            .toMillis();
 
-        double speedDifferenceMs =
-                speedDifference / 3.6;
+                    double seconds =
+                            milliseconds / 1000.0;
 
-        double deceleration =
-                speedDifferenceMs / seconds;
+                    if (seconds > 0
+                            && speedDifference > 0) {
 
+                        double speedDifferenceMs =
+                                speedDifference / 3.6;
 
-        if (deceleration >= HARSH_BRAKING_THRESHOLD) {
+                        double deceleration =
+                                speedDifferenceMs / seconds;
 
+                        if (deceleration
+                                >= HARSH_BRAKING_THRESHOLD) {
 
-            DrivingEventEntity drivingEventEntity =
-                    new DrivingEventEntity(
-                            truck,
-                            activeTrip,
-                            DrivingEventType.HARSH_BRAKING,
-                            previous.speed(),
-                            current.speed(),
-                            speedDifference,
-                            milliseconds,
-                            deceleration,
-                            current.timestamp()
-                    );
+                            DrivingEventEntity drivingEventEntity =
+                                    new DrivingEventEntity(
+                                            truck,
+                                            activeTrip,
+                                            DrivingEventType.HARSH_BRAKING,
+                                            previous.speed(),
+                                            current.speed(),
+                                            speedDifference,
+                                            milliseconds,
+                                            deceleration,
+                                            current.timestamp()
+                                    );
 
-drivingEventRepository.save(drivingEventEntity);
-        }
-    }
-}                   latestTelemetry.put(
+                            drivingEventRepository.save(
+                                    drivingEventEntity
+                            );
+                        }
+                    }
+                }
+            });
+
+            /*
+             * Buraya geldiysek transaction başarıyla tamamlandı.
+             * Şimdi RAM state'ini güncelliyoruz.
+             */
+
+            latestTelemetry.put(
                     current.truckId(),
                     current
             );
@@ -189,11 +233,10 @@ drivingEventRepository.save(drivingEventEntity);
                     current.truckId(),
                     telemetryRequest.sequenceNumber()
             );
-        }
 
             return telemetryRequest;
+        }
     }
-
     public Optional<TelemetrySnapshot> getLatestTelemetry(String truckId) {
         return Optional.ofNullable(latestTelemetry.get(truckId)); // aranan keye ait value olmayabilir bu durumda null değer döndürebilir bunun önüne geçmek için Optional kullanırız.
 
