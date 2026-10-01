@@ -18,6 +18,8 @@ import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
 import com.truckpulse.telemetry.repository.TripRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -42,6 +44,9 @@ public class TelemetryService {
     private final Map<String, Long> lastSequences =
             new ConcurrentHashMap<>();
 
+    // kayıp sequencesNumber'ı izleyebilmek amacıyla kullanılıyor
+    private static final Logger log =
+            LoggerFactory.getLogger(TelemetryService.class);
 
  private final TruckRepository truckRepository;
  private final TripRepository tripRepository;
@@ -92,6 +97,23 @@ public class TelemetryService {
                         telemetryRequest.truckId(),
                         telemetryRequest.sequenceNumber(),
                         lastSequence
+                );
+            }
+            if (lastSequence != null
+                    && telemetryRequest.sequenceNumber() > lastSequence + 1) {
+
+                long missingCount =
+                        telemetryRequest.sequenceNumber()
+                                - lastSequence
+                                - 1;
+
+                log.warn(
+                        "Telemetry sequence gap detected for truck {}. "
+                                + "Last sequence: {}, incoming sequence: {}, missing count: {}",
+                        telemetryRequest.truckId(),
+                        lastSequence,
+                        telemetryRequest.sequenceNumber(),
+                        missingCount
                 );
             }
         TelemetrySnapshot current = new TelemetrySnapshot(

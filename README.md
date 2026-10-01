@@ -512,7 +512,7 @@ The project is being developed in stages.
 - [x] Add source sequence numbers to telemetry requests
 - [x] Enforce monotonic telemetry sequence per truck
 - [x] Reject duplicate and out-of-order telemetry with `409 Conflict`
-- [ ] Detect gaps in telemetry sequences
+- [x] Detect gaps in telemetry sequences
 
 #### Deterministic Telemetry Testing
 
