@@ -7,6 +7,7 @@ import com.truckpulse.telemetry.entity.DrivingEventEntity;
 import com.truckpulse.telemetry.entity.TelemetryRecord;
 import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.entity.Truck;
+import com.truckpulse.telemetry.exception.OutOfOrderTelemetryException;
 import com.truckpulse.telemetry.exception.TripNotFoundException;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
 import com.truckpulse.telemetry.model.DrivingEventType;
@@ -36,6 +37,9 @@ public class TelemetryService {
 
     //truck bazlı lockları tutmak için
     private final Map<String, Object> truckLocks =
+            new ConcurrentHashMap<>();
+
+    private final Map<String, Long> lastSequences =
             new ConcurrentHashMap<>();
 
 
@@ -78,7 +82,18 @@ public class TelemetryService {
                      key -> new Object()
         );
         synchronized (lock) {
+            Long lastSequence =
+                    lastSequences.get(telemetryRequest.truckId());
 
+            if (lastSequence != null
+                    && telemetryRequest.sequenceNumber() <= lastSequence) {
+
+                throw new OutOfOrderTelemetryException(
+                        telemetryRequest.truckId(),
+                        telemetryRequest.sequenceNumber(),
+                        lastSequence
+                );
+            }
         TelemetrySnapshot current = new TelemetrySnapshot(
                 telemetryRequest.truckId(),
                 telemetryRequest.speed(),
@@ -148,6 +163,10 @@ drivingEventRepository.save(drivingEventEntity);
                     current
             );
 
+            lastSequences.put(
+                    current.truckId(),
+                    telemetryRequest.sequenceNumber()
+            );
         }
 
             return telemetryRequest;

@@ -50,4 +50,19 @@ public class GlobalExceptionHandler   {
                 .status(HttpStatus.CONFLICT)
                 .body(error);
     }
+
+    @ExceptionHandler(OutOfOrderTelemetryException.class)
+    public ResponseEntity<ApiError> handleOutOfOrderTelemetry(
+            OutOfOrderTelemetryException ex
+    ) {
+
+        ApiError error = new ApiError(
+                HttpStatus.CONFLICT.value(),
+                ex.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
 }

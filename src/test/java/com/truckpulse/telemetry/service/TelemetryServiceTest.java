@@ -69,7 +69,8 @@ class TelemetryServiceTest {
                         100,
                         1500,
                         300,
-                        8
+                        8,
+                        1L
                 );
 
         TelemetryRequest secondTelemetry =
@@ -78,7 +79,8 @@ class TelemetryServiceTest {
                         64,
                         1200,
                         299,
-                        6
+                        6,
+                        2L
                 );
 
         telemetryService.processTelemetryRequest(firstTelemetry);
