@@ -1114,7 +1114,7 @@ It will continue evolving as new engineering requirements appear.
 - [x] Handle backend HTTP responses in the bridge
 - [x] Integrate SCS Telemetry SDK
 - [x] Read live vehicle telemetry from ETS2
-- [ ] Map ETS2 telemetry to the bridge telemetry model
+- [x] Map ETS2 telemetry to the bridge telemetry model
 - [ ] Forward live ETS2 telemetry to the backend
 - [ ] Handle game pause and telemetry interruptions
 - [ ] Handle bridge reconnection scenarios
