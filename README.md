@@ -1115,18 +1115,18 @@ It will continue evolving as new engineering requirements appear.
 - [x] Integrate SCS Telemetry SDK
 - [x] Read live vehicle telemetry from ETS2
 - [x] Map ETS2 telemetry to the bridge telemetry model
-- [ ] Forward live ETS2 telemetry to the backend
-- [ ] Handle game pause and telemetry interruptions
-- [ ] Handle bridge reconnection scenarios
-- [ ] Replace manual telemetry input with live game telemetry
+- [x] Forward live ETS2 telemetry to the backend
+- [x] Handle game pause and telemetry interruptions
+- [x] Handle bridge reconnection scenarios
+- [x] Replace manual telemetry input with live game telemetry
 
 ---
 
 ## Phase 5 — Real-Time Telemetry
 
-- [ ] Add live vehicle state
-- [ ] Add WebSocket communication
-- [ ] Build a simple live telemetry dashboard
+- [x] Add live vehicle state
+- [x] Add WebSocket communication
+- [x] Build a simple live telemetry dashboard
 - [ ] Support multiple simultaneously active trucks
 - [ ] Stream live telemetry updates to connected clients
 
