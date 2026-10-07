@@ -7,6 +7,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 public record TelemetryRequest(
         @NotBlank
         String truckId,
+        @NotBlank
+        String sessionId,
         @PositiveOrZero
         double speed,
         @PositiveOrZero

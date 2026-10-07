@@ -12,6 +12,7 @@ import com.truckpulse.telemetry.exception.OutOfOrderTelemetryException;
 import com.truckpulse.telemetry.exception.TripNotFoundException;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
 import com.truckpulse.telemetry.model.DrivingEventType;
+import com.truckpulse.telemetry.model.TelemetrySessionKey;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
 import com.truckpulse.telemetry.model.TripStatus;
 import com.truckpulse.telemetry.repository.DrivingEventRepository;
@@ -39,7 +40,7 @@ public class TelemetryService {
     private final Map<String, TelemetrySnapshot> latestTelemetry =
             new ConcurrentHashMap<>();
 
-    private final Map<String, Long> lastSequences =
+    private final Map<TelemetrySessionKey, Long> lastSequences =
             new ConcurrentHashMap<>();
 
     // kayıp sequencesNumber'ı izleyebilmek amacıyla kullanılıyor
@@ -81,8 +82,14 @@ public class TelemetryService {
 
         synchronized (lock) {
 
+            TelemetrySessionKey sessionKey =
+                    new TelemetrySessionKey(
+                            telemetryRequest.truckId(),
+                            telemetryRequest.sessionId()
+                    );
+
             Long lastSequence =
-                    lastSequences.get(telemetryRequest.truckId());
+                    lastSequences.get(sessionKey);
 
             // Duplicate veya out-of-order telemetry kontrolü
             if (lastSequence != null
@@ -90,6 +97,7 @@ public class TelemetryService {
 
                 throw new OutOfOrderTelemetryException(
                         telemetryRequest.truckId(),
+                        telemetryRequest.sessionId(),
                         telemetryRequest.sequenceNumber(),
                         lastSequence
                 );
@@ -105,25 +113,33 @@ public class TelemetryService {
                                 - 1;
 
                 log.warn(
-                        "Telemetry sequence gap detected for truck {}. "
+                        "Telemetry sequence gap detected for truck {}, session {}. "
                                 + "Last sequence: {}, incoming sequence: {}, missing count: {}",
                         telemetryRequest.truckId(),
+                        telemetryRequest.sessionId(),
                         lastSequence,
                         telemetryRequest.sequenceNumber(),
                         missingCount
                 );
             }
-
             // RAM'deki önceki telemetry
-            TelemetrySnapshot previous =
+            TelemetrySnapshot previousForTruck =
                     latestTelemetry.get(
                             telemetryRequest.truckId()
                     );
+
+            TelemetrySnapshot previous =
+                    previousForTruck != null
+                            && previousForTruck.sessionId()
+                            .equals(telemetryRequest.sessionId())
+                            ? previousForTruck
+                            : null;
 
             // Şu an gelen telemetry
             TelemetrySnapshot current =
                     new TelemetrySnapshot(
                             telemetryRequest.truckId(),
+                            telemetryRequest.sessionId(),
                             telemetryRequest.speed(),
                             telemetryRequest.rpm(),
                             telemetryRequest.fuel(),
@@ -230,7 +246,7 @@ public class TelemetryService {
             );
 
             lastSequences.put(
-                    current.truckId(),
+                    sessionKey,
                     telemetryRequest.sequenceNumber()
             );
 

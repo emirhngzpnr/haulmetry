@@ -1,5 +1,6 @@
 package com.truckpulse.telemetry.service;
 
+import com.truckpulse.telemetry.concurrency.TruckLockManager;
 import com.truckpulse.telemetry.dto.TelemetryRequest;
 import com.truckpulse.telemetry.entity.DrivingEventEntity;
 import com.truckpulse.telemetry.entity.Truck;
@@ -7,20 +8,29 @@ import com.truckpulse.telemetry.repository.DrivingEventRepository;
 import com.truckpulse.telemetry.repository.TelemetryRecordRepository;
 import com.truckpulse.telemetry.repository.TripRepository;
 import com.truckpulse.telemetry.repository.TruckRepository;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
 
 @ExtendWith(MockitoExtension.class)
 class TelemetryServiceTest {
@@ -40,8 +50,35 @@ class TelemetryServiceTest {
     @Mock
     private Clock clock;
 
+    @Spy
+    private TruckLockManager truckLockManager =
+            new TruckLockManager();
+
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
     @InjectMocks
     private TelemetryService telemetryService;
+
+
+    @BeforeEach
+    void setUp() {
+
+        doAnswer(invocation -> {
+
+            Consumer<TransactionStatus> callback =
+                    invocation.getArgument(0);
+
+            callback.accept(
+                    mock(TransactionStatus.class)
+            );
+
+            return null;
+
+        }).when(transactionTemplate)
+                .executeWithoutResult(any());
+    }
+
 
     @Test
     void shouldCreateHarshBrakingEventWithDeterministicTime() {
@@ -51,21 +88,41 @@ class TelemetryServiceTest {
                 "Test Truck"
         );
 
-        when(truckRepository.findByTruckId("TEST-TRUCK-001"))
-                .thenReturn(Optional.of(truck));
 
-        when(tripRepository.findByTruck_TruckIdAndStatus(any(), any()))
-                .thenReturn(Optional.empty());
+        when(
+                truckRepository.findByTruckId(
+                        "TEST-TRUCK-001"
+                )
+        ).thenReturn(
+                Optional.of(truck)
+        );
+
+
+        when(
+                tripRepository.findByTruck_TruckIdAndStatus(
+                        any(),
+                        any()
+                )
+        ).thenReturn(
+                Optional.empty()
+        );
+
 
         when(clock.instant())
                 .thenReturn(
-                        Instant.parse("2026-09-30T12:00:00Z"),
-                        Instant.parse("2026-09-30T12:00:02Z")
+                        Instant.parse(
+                                "2026-09-30T12:00:00Z"
+                        ),
+                        Instant.parse(
+                                "2026-09-30T12:00:02Z"
+                        )
                 );
+
 
         TelemetryRequest firstTelemetry =
                 new TelemetryRequest(
                         "TEST-TRUCK-001",
+                        "TEST-SESSION-001",
                         100,
                         1500,
                         300,
@@ -73,9 +130,11 @@ class TelemetryServiceTest {
                         1L
                 );
 
+
         TelemetryRequest secondTelemetry =
                 new TelemetryRequest(
                         "TEST-TRUCK-001",
+                        "TEST-SESSION-001",
                         64,
                         1200,
                         299,
@@ -83,22 +142,137 @@ class TelemetryServiceTest {
                         2L
                 );
 
-        telemetryService.processTelemetryRequest(firstTelemetry);
-        telemetryService.processTelemetryRequest(secondTelemetry);
+
+        telemetryService.processTelemetryRequest(
+                firstTelemetry
+        );
+
+        telemetryService.processTelemetryRequest(
+                secondTelemetry
+        );
+
 
         ArgumentCaptor<DrivingEventEntity> eventCaptor =
-                ArgumentCaptor.forClass(DrivingEventEntity.class);
+                ArgumentCaptor.forClass(
+                        DrivingEventEntity.class
+                );
+
 
         verify(drivingEventRepository)
-                .save(eventCaptor.capture());
+                .save(
+                        eventCaptor.capture()
+                );
+
 
         DrivingEventEntity event =
                 eventCaptor.getValue();
 
-        assertEquals(100.0, event.getPreviousSpeed());
-        assertEquals(64.0, event.getCurrentSpeed());
-        assertEquals(36.0, event.getSpeedDifference());
-        assertEquals(2000, event.getDurationMs());
-        assertEquals(5.0, event.getDeceleration(), 0.001);
+
+        assertEquals(
+                100.0,
+                event.getPreviousSpeed()
+        );
+
+        assertEquals(
+                64.0,
+                event.getCurrentSpeed()
+        );
+
+        assertEquals(
+                36.0,
+                event.getSpeedDifference()
+        );
+
+        assertEquals(
+                2000,
+                event.getDurationMs()
+        );
+
+        assertEquals(
+                5.0,
+                event.getDeceleration(),
+                0.001
+        );
+    }
+    @Test
+    void shouldAcceptSequenceResetForNewSessionWithoutCreatingHarshBrakingEvent() {
+
+        Truck truck = new Truck(
+                "TEST-TRUCK-001",
+                "Test Truck"
+        );
+
+        when(
+                truckRepository.findByTruckId(
+                        "TEST-TRUCK-001"
+                )
+        ).thenReturn(
+                Optional.of(truck)
+        );
+
+        when(
+                tripRepository.findByTruck_TruckIdAndStatus(
+                        any(),
+                        any()
+                )
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        when(clock.instant())
+                .thenReturn(
+                        Instant.parse(
+                                "2026-10-07T12:00:00Z"
+                        ),
+                        Instant.parse(
+                                "2026-10-07T12:00:02Z"
+                        )
+                );
+
+
+        TelemetryRequest lastTelemetryOfOldSession =
+                new TelemetryRequest(
+                        "TEST-TRUCK-001",
+                        "SESSION-A",
+                        100,
+                        1500,
+                        300,
+                        8,
+                        47L
+                );
+
+
+        TelemetryRequest firstTelemetryOfNewSession =
+                new TelemetryRequest(
+                        "TEST-TRUCK-001",
+                        "SESSION-B",
+                        0,
+                        500,
+                        299,
+                        0,
+                        1L
+                );
+
+
+        telemetryService.processTelemetryRequest(
+                lastTelemetryOfOldSession
+        );
+
+        telemetryService.processTelemetryRequest(
+                firstTelemetryOfNewSession
+        );
+
+
+        verify(
+                telemetryRecordRepository,
+                times(2)
+        ).save(any());
+
+
+        verify(
+                drivingEventRepository,
+                never()
+        ).save(any());
     }
 }
+
