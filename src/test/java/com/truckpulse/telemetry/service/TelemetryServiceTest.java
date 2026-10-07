@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -56,6 +57,9 @@ class TelemetryServiceTest {
 
     @Mock
     private TransactionTemplate transactionTemplate;
+
+    @Mock
+    private SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private TelemetryService telemetryService;
@@ -274,5 +278,6 @@ class TelemetryServiceTest {
                 never()
         ).save(any());
     }
+
 }
 

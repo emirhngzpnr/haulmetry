@@ -16,6 +16,7 @@ public record TelemetrySnapshot(@NotBlank
                                 @PositiveOrZero
                                 double fuel,
                                 int gear,
+                                long sequenceNumber,
                                 Instant timestamp
 
 ) {

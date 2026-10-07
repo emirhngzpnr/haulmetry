@@ -22,6 +22,7 @@ import com.truckpulse.telemetry.repository.TruckRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -53,7 +54,8 @@ public class TelemetryService {
  private final DrivingEventRepository drivingEventRepository;
  private final Clock clock;
  private final TruckLockManager truckLockManager;
-    private final TransactionTemplate transactionTemplate;
+ private final TransactionTemplate transactionTemplate;
+ private final SimpMessagingTemplate messagingTemplate;
 
  public TelemetryService(TruckRepository truckRepository,
                          TripRepository tripRepository ,
@@ -61,7 +63,8 @@ public class TelemetryService {
                          DrivingEventRepository drivingEventRepository,
                          Clock clock,
                          TruckLockManager truckLockManager,
-                         TransactionTemplate transactionTemplate
+                         TransactionTemplate transactionTemplate,
+                         SimpMessagingTemplate messagingTemplate
  ) {
      this.truckRepository = truckRepository;
      this.tripRepository = tripRepository;
@@ -70,6 +73,7 @@ public class TelemetryService {
      this.clock = clock;
      this.truckLockManager = truckLockManager;
      this.transactionTemplate = transactionTemplate;
+     this.messagingTemplate = messagingTemplate;
  }
 
     public TelemetryRequest processTelemetryRequest(
@@ -144,6 +148,7 @@ public class TelemetryService {
                             telemetryRequest.rpm(),
                             telemetryRequest.fuel(),
                             telemetryRequest.gear(),
+                            telemetryRequest.sequenceNumber(),
                             Instant.now(clock)
                     );
 
@@ -249,6 +254,22 @@ public class TelemetryService {
                     sessionKey,
                     telemetryRequest.sequenceNumber()
             );
+
+            try {
+
+                messagingTemplate.convertAndSend(
+                        "/topic/telemetry",
+                        current
+                );
+
+            } catch (RuntimeException exception) {
+
+                log.warn(
+                        "Could not publish live telemetry for truck {}.",
+                        current.truckId(),
+                        exception
+                );
+            }
 
             return telemetryRequest;
         }
