@@ -1127,8 +1127,8 @@ It will continue evolving as new engineering requirements appear.
 - [x] Add live vehicle state
 - [x] Add WebSocket communication
 - [x] Build a simple live telemetry dashboard
-- [ ] Support multiple simultaneously active trucks
-- [ ] Stream live telemetry updates to connected clients
+- [x] Support multiple simultaneously active trucks
+- [x] Stream live telemetry updates to connected clients
 
 ---
 
