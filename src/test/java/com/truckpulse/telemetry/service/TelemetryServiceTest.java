@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
-
+import com.truckpulse.telemetry.kafka.TelemetryEventProducer;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
@@ -64,6 +64,8 @@ class TelemetryServiceTest {
     @InjectMocks
     private TelemetryService telemetryService;
 
+    @Mock
+    private TelemetryEventProducer telemetryEventProducer;
 
     @BeforeEach
     void setUp() {

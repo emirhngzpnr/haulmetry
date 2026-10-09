@@ -8,6 +8,8 @@ import com.truckpulse.telemetry.entity.DrivingEventEntity;
 import com.truckpulse.telemetry.entity.TelemetryRecord;
 import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.entity.Truck;
+import com.truckpulse.telemetry.kafka.TelemetryEventProducer;
+import com.truckpulse.telemetry.event.TelemetryReceivedEvent;
 import com.truckpulse.telemetry.exception.OutOfOrderTelemetryException;
 import com.truckpulse.telemetry.exception.TripNotFoundException;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
@@ -56,6 +58,8 @@ public class TelemetryService {
  private final TruckLockManager truckLockManager;
  private final TransactionTemplate transactionTemplate;
  private final SimpMessagingTemplate messagingTemplate;
+ private final TelemetryEventProducer telemetryEventProducer;
+
 
  public TelemetryService(TruckRepository truckRepository,
                          TripRepository tripRepository ,
@@ -64,7 +68,8 @@ public class TelemetryService {
                          Clock clock,
                          TruckLockManager truckLockManager,
                          TransactionTemplate transactionTemplate,
-                         SimpMessagingTemplate messagingTemplate
+                         SimpMessagingTemplate messagingTemplate,
+                         TelemetryEventProducer telemetryEventProducer
  ) {
      this.truckRepository = truckRepository;
      this.tripRepository = tripRepository;
@@ -74,6 +79,7 @@ public class TelemetryService {
      this.truckLockManager = truckLockManager;
      this.transactionTemplate = transactionTemplate;
      this.messagingTemplate = messagingTemplate;
+     this.telemetryEventProducer = telemetryEventProducer;
  }
 
     public TelemetryRequest processTelemetryRequest(
@@ -255,6 +261,32 @@ public class TelemetryService {
                     telemetryRequest.sequenceNumber()
             );
 
+            TelemetryReceivedEvent event =
+                    new TelemetryReceivedEvent(
+                            current.truckId(),
+                            current.sessionId(),
+                            current.speed(),
+                            current.rpm(),
+                            current.fuel(),
+                            current.gear(),
+                            current.sequenceNumber(),
+                            current.timestamp()
+                    );
+
+            try {
+
+                telemetryEventProducer.publishTelemetryReceived(
+                        event
+                );
+
+            } catch (RuntimeException exception) {
+
+                log.warn(
+                        "Could not publish telemetry event for truck {}.",
+                        current.truckId(),
+                        exception
+                );
+            }
             try {
 
                 messagingTemplate.convertAndSend(
