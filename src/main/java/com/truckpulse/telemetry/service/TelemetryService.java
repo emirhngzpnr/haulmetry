@@ -263,6 +263,7 @@ public class TelemetryService {
 
             TelemetryReceivedEvent event =
                     new TelemetryReceivedEvent(
+                            UUID.randomUUID(),
                             current.truckId(),
                             current.sessionId(),
                             current.speed(),

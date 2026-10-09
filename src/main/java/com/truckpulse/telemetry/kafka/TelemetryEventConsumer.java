@@ -24,8 +24,10 @@ public class TelemetryEventConsumer {
         TelemetryReceivedEvent event =
                 record.value();
 
+
         log.info(
-                "Telemetry event consumed. truckId={}, key={}, partition={}, offset={}, sequence={}",
+                "Telemetry event consumed. eventId={}, truckId={}, key={}, partition={}, offset={}, sequence={}",
+                event.eventId(),
                 event.truckId(),
                 record.key(),
                 record.partition(),
