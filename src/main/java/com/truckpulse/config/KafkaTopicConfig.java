@@ -34,4 +34,13 @@ public class KafkaTopicConfig {
                 .replicas(1)
                 .build();
     }
+
+    @Bean
+    public NewTopic drivingEventCreatedDltTopic() {
+        return TopicBuilder
+                .name(KafkaTopics.DRIVING_EVENT_CREATED_DLT)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
 }

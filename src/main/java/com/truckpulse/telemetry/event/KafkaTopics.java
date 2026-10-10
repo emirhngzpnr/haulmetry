@@ -12,4 +12,7 @@ public final class KafkaTopics {
 
     public static final String DRIVING_EVENT_CREATED =
             "haulmetry.driving.event.created";
+
+    public static final String DRIVING_EVENT_CREATED_DLT =
+            "haulmetry.driving.event.created-dlt";
 }
