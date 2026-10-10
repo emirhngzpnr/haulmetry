@@ -16,10 +16,20 @@ public class KafkaTopicConfig {
                 .replicas(1)
                 .build();
     }
+
     @Bean
     public NewTopic telemetryReceivedDltTopic() {
         return TopicBuilder
                 .name(KafkaTopics.TELEMETRY_RECEIVED_DLT)
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic drivingEventCreatedTopic() {
+        return TopicBuilder
+                .name(KafkaTopics.DRIVING_EVENT_CREATED)
                 .partitions(3)
                 .replicas(1)
                 .build();

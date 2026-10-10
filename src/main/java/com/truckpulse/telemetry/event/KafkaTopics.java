@@ -9,4 +9,7 @@ public final class KafkaTopics {
 
     public static final String TELEMETRY_RECEIVED_DLT =
             "haulmetry.telemetry.received-dlt";
+
+    public static final String DRIVING_EVENT_CREATED =
+            "haulmetry.driving.event.created";
 }

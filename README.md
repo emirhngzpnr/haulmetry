@@ -1134,13 +1134,13 @@ It will continue evolving as new engineering requirements appear.
 
 ## Phase 6 — Event-Driven Architecture
 
-- [ ] Introduce Apache Kafka
+- [x] Introduce Apache Kafka
 - [ ] Publish telemetry events
 - [ ] Publish driving events
 - [ ] Add consumers
 - [ ] Handle retries
 - [ ] Handle duplicate messages
-- [ ] Introduce idempotent processing
+- [x] Introduce idempotent processing
 
 ---
 

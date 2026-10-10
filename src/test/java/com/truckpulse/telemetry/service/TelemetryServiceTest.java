@@ -18,7 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-
+import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -72,19 +72,17 @@ class TelemetryServiceTest {
 
         doAnswer(invocation -> {
 
-            Consumer<TransactionStatus> callback =
+            TransactionCallback<?> callback =
                     invocation.getArgument(0);
 
-            callback.accept(
-                    mock(TransactionStatus.class)
-            );
+            TransactionStatus status =
+                    mock(TransactionStatus.class);
 
-            return null;
+            return callback.doInTransaction(status);
 
         }).when(transactionTemplate)
-                .executeWithoutResult(any());
+                .execute(any(TransactionCallback.class));
     }
-
 
     @Test
     void shouldCreateHarshBrakingEventWithDeterministicTime() {
