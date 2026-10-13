@@ -1,5 +1,6 @@
 package com.truckpulse.telemetry.service;
 
+import com.truckpulse.kafka.outbox.OutboxEventService;
 import com.truckpulse.telemetry.concurrency.TruckLockManager;
 import com.truckpulse.telemetry.dto.DrivingEventResponse;
 import com.truckpulse.telemetry.dto.TelemetryRecordResponse;
@@ -9,12 +10,11 @@ import com.truckpulse.telemetry.entity.TelemetryRecord;
 import com.truckpulse.telemetry.entity.Trip;
 import com.truckpulse.telemetry.entity.Truck;
 import com.truckpulse.telemetry.event.DrivingEventCreatedEvent;
+import com.truckpulse.telemetry.event.KafkaTopics;
 import com.truckpulse.telemetry.event.TelemetryReceivedEvent;
 import com.truckpulse.telemetry.exception.OutOfOrderTelemetryException;
 import com.truckpulse.telemetry.exception.TripNotFoundException;
 import com.truckpulse.telemetry.exception.TruckNotFoundException;
-import com.truckpulse.telemetry.kafka.DrivingEventProducer;
-import com.truckpulse.telemetry.kafka.TelemetryEventProducer;
 import com.truckpulse.telemetry.model.DrivingEventType;
 import com.truckpulse.telemetry.model.TelemetrySessionKey;
 import com.truckpulse.telemetry.model.TelemetrySnapshot;
@@ -67,8 +67,7 @@ public class TelemetryService {
     private final TruckLockManager truckLockManager;
     private final TransactionTemplate transactionTemplate;
     private final SimpMessagingTemplate messagingTemplate;
-    private final TelemetryEventProducer telemetryEventProducer;
-    private final DrivingEventProducer drivingEventProducer;
+    private final OutboxEventService outboxEventService;
 
     public TelemetryService(
             TruckRepository truckRepository,
@@ -79,8 +78,7 @@ public class TelemetryService {
             TruckLockManager truckLockManager,
             TransactionTemplate transactionTemplate,
             SimpMessagingTemplate messagingTemplate,
-            TelemetryEventProducer telemetryEventProducer,
-            DrivingEventProducer drivingEventProducer
+            OutboxEventService outboxEventService
     ) {
         this.truckRepository = truckRepository;
         this.tripRepository = tripRepository;
@@ -90,8 +88,7 @@ public class TelemetryService {
         this.truckLockManager = truckLockManager;
         this.transactionTemplate = transactionTemplate;
         this.messagingTemplate = messagingTemplate;
-        this.telemetryEventProducer = telemetryEventProducer;
-        this.drivingEventProducer = drivingEventProducer;
+        this.outboxEventService = outboxEventService;
     }
 
     public TelemetryRequest processTelemetryRequest(
@@ -196,13 +193,12 @@ public class TelemetryService {
                     );
 
             /*
-             * DB transaction.
+             * Telemetry kaydı ve ilgili outbox event'leri
+             * aynı DB transaction'ı içinde kaydedilir.
              *
-             * Buradan DrivingEventCreatedEvent döndürüyoruz.
-             *
-             * Eğer harsh braking oluşmadıysa null dönecek.
+             * Ani fren oluşmazsa yalnızca telemetry event'i
+             * outbox'a kaydedilir.
              */
-            DrivingEventCreatedEvent drivingEventCreatedEvent =
                     transactionTemplate.execute(status -> {
 
                         Truck truck = truckRepository
@@ -239,7 +235,24 @@ public class TelemetryService {
                         telemetryRecordRepository.save(
                                 telemetryRecord
                         );
+                        TelemetryReceivedEvent telemetryEvent = new TelemetryReceivedEvent(
+                                UUID.randomUUID(),
+                                current.truckId(),
+                                current.sessionId(),
+                                current.speed(),
+                                current.rpm(),
+                                current.fuel(),
+                                current.gear(),
+                                current.sequenceNumber(),
+                                current.timestamp()
+                        );
 
+                        outboxEventService.saveEvent(
+                                "TRUCK",
+                                current.truckId(),
+                                KafkaTopics.TELEMETRY_RECEIVED,
+                                telemetryEvent
+                        );
                         /*
                          * Önceki telemetry yoksa henüz
                          * hız değişimini hesaplayamayız.
@@ -320,15 +333,27 @@ public class TelemetryService {
                          *
                          * Burada henüz Kafka'ya publish etmiyoruz.
                          */
-                        return new DrivingEventCreatedEvent(
-                                UUID.randomUUID(),
+
+                        DrivingEventCreatedEvent drivingEventCreatedEvent =
+                                new DrivingEventCreatedEvent(
+                                        UUID.randomUUID(),
+                                        current.truckId(),
+                                        DrivingEventType.HARSH_BRAKING,
+                                        previous.speed(),
+                                        current.speed(),
+                                        speedDifference,
+                                        current.timestamp()
+                                );
+
+                        outboxEventService.saveEvent(
+                                "TRUCK",
                                 current.truckId(),
-                                DrivingEventType.HARSH_BRAKING,
-                                previous.speed(),
-                                current.speed(),
-                                speedDifference,
-                                current.timestamp()
+                                KafkaTopics.DRIVING_EVENT_CREATED,
+                                drivingEventCreatedEvent
                         );
+
+                        return null;
+
                     });
 
             /*
@@ -364,47 +389,6 @@ public class TelemetryService {
                             current.timestamp()
                     );
 
-            /*
-             * Telemetry event Kafka publish.
-             */
-            try {
-
-                telemetryEventProducer.publishTelemetryReceived(
-                        telemetryReceivedEvent
-                );
-
-            } catch (RuntimeException exception) {
-
-                log.warn(
-                        "Could not publish telemetry event for truck {}.",
-                        current.truckId(),
-                        exception
-                );
-            }
-
-            /*
-             * Eğer transaction sırasında HARSH_BRAKING oluştuysa
-             * şimdi Kafka'ya driving event'i yayınlıyoruz.
-             *
-             * Buraya geldiğimizde DB commit tamamlanmış durumda.
-             */
-            if (drivingEventCreatedEvent != null) {
-
-                try {
-
-                    drivingEventProducer.publishDrivingEventCreated(
-                            drivingEventCreatedEvent
-                    );
-
-                } catch (RuntimeException exception) {
-
-                    log.warn(
-                            "Could not publish driving event for truck {}.",
-                            current.truckId(),
-                            exception
-                    );
-                }
-            }
 
             /*
              * Live dashboard için WebSocket yayını.
